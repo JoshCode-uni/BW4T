@@ -71,6 +71,7 @@ main module [exit=nogoals] {
 		if bel( in('DropZone')) then putDown. % If we are in dropzone, always putDown block
 
 		% Added move items below the rest
+		% Alter so that if bot is looking for block, it doesnt already move away to another room
 		if a-goal( in(Place) ) then goTo(Place).
 
 

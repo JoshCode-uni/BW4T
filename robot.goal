@@ -93,7 +93,8 @@ event module {
 		forall bel( percept(not(in(Place))) ) do delete( in(Place) ) + insert( visited(Place) ). % Updated with visited predicate into belief base
 
 		% Exercise 2.1b: insert rules for handling percepts other than "sendonce" percepts.
-		forall bel( at(Place), percept(at(NewPlace)) ) do delete( at(Place) ) + insert( at(NewPlace) ). % Send on change
+		forall bel( at(Place)) do delete (at(Place)).
+		forall bel( percept(at(Place)) ) do insert( at(Place) ). % Send on change
 		
 		forall bel( percept(atBlock(BlockID)) ) do insert( atBlock(BlockID) ). % Send on change with negation
 		forall bel( percept(not(atBlock(BlockID))) ) do delete( atBlock(BlockID) ).

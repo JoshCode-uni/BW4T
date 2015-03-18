@@ -22,7 +22,7 @@ init module {
 		% Exercise 2.1a: insert rules for processing percepts that are sent only at the beginning of a session, 
 		%  and/or need to be initialized.
 		if bel( percept(at(Place))) then insert(at(Place)). % Needs to be initialized
-		if bel( percept(place(Place))) then insert(place(Place)). % Send once
+		forall bel( percept(place(Place))) do insert(place(Place)). % Send once
 		if bel( percept(sequence(List))) then insert(sequence(List)). % Send once
 		
 	}	

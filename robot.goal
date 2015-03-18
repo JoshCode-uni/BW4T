@@ -70,6 +70,8 @@ event module {
 		forall bel( percept(atBlock(BlockID)) ) do insert( atBlock(BlockID) ). % Send on change with negation
 		forall bel( percept(not(atBlock(BlockID))) ) do delete( atBlock(BlockID) ).
 		
+		forall bel( inRoomBlock(BlockID), percept(color(NewBlockID, _)) ) do delete( inRoomBlock(BlockID))+ insert(inRoomBlock(NewBlockID)). % Send on change local
+		
 		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Send on change local
 		
 		forall bel( percept(holding(BlockID)) ) do insert( holding(BlockID) ). % Send on change with negation

@@ -30,16 +30,27 @@ init module {
 		% The goTo action makes the agent move to a place (location) in the BW4T environment.
 		% As long as the agent has not arrived at the place it is going to, it will be in "traveling" mode.
 		goTo(Location) {
-            pre { not(state(traveling)) }
+            pre { place(Location), not(state(traveling)) }
 			post { true }
 		}
 
 		% Exercise 2.3a: insert a specification for the goToBlock(Block) action.
+		goToBlock(Block) {
+			pre { not(state(traveling)), inRoomBlock(Block) }
+			post { true }
+		}
 
 		% Exercise 2.3b: insert a specification for the pickUp action.
+		pickUp() {
+			pre { not(state(traveling)), not(holding(_)), atBlock(_) }
+			post { true }
+		}
 
 		% Exercise 2.3c: insert a specification for the putDown action.
-		
+		putDown() {
+			pre { not(state(traveling)), holding(_) }
+			post { true }
+		}
 	}
 }
 

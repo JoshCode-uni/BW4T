@@ -7,6 +7,7 @@ init module {
 		nextColorInSeq(Color) :- sequenceIndex(Index), sequence(Seq), nth0(Index, Seq, Color).
 
 		% Exercise 2.5 + 2.6: (optional) if needed, insert additional knowledge here.
+		
 		% Gives the next block needed in the sequence when in a room, if any
 		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color).
 		
@@ -20,6 +21,8 @@ init module {
 		
 		% Adopt initial goals.
 		forall bel( room(Place) ) do adopt( in(Place) ).
+		
+		% TODO % if bel( percept(sequenceIndex(Index))) then adopt(sequenceIndex(Index)). % Needs to be initialized
 
 		% Exercise 2.1a: insert rules for processing percepts that are sent only at the beginning of a session, 
 		%  and/or need to be initialized.
@@ -73,7 +76,6 @@ main module [exit=nogoals] {
 		% Added move items below the rest
 		% If we have a right color in the room, don't move away
 		if bel( not(nextBlockInSeq(_)) ), a-goal( in(Place) ) then goTo(Place).
-
 
 		% Exercise 2.6a: insert code for action rules that makes the agent deliver a block when it 
 		%   knows about a block that can be delivered.

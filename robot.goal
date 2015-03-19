@@ -113,7 +113,7 @@ event module {
 		forall bel( color(BlockID, Color) ) do delete(color(BlockID, Color)). % Remove all colors, because the ones we can currently see are sent
 		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Send always, local
 		
-		forall bel( percept(color(BlockID, Color)), in(Place) ) do insert(blockInRoom(BlockID, Place)). % Long term block memory
+		forall bel( not(blockInRoom(BlockID, _)), percept(color(BlockID, Color)), in(Place) ) do insert(blockInRoom(BlockID, Place)). % Long term block memory
 		
 		forall bel( percept(holding(BlockID)) ) do insert( holding(BlockID) ). % Send on change with negation
 		forall bel( percept(not(holding(BlockID))) ) do delete( holding(BlockID) ).

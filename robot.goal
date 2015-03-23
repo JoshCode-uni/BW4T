@@ -123,13 +123,11 @@ event module {
 		forall bel( inRoomBlock(BlockID) ) do delete( inRoomBlock(BlockID) ). % Send on change local
 		forall bel( percept(color(NewBlockID, _)) ) do insert(inRoomBlock(NewBlockID)). % Send on change local
 		
-<<<<<<< HEAD
 		% 2.5: We must remove and re-add all colors every cycle, since they are sent always when available
 		% and we want to know which are available when in a room, this is probably fixed in ex. 2.6 (?)
 		forall bel( color(BlockID, Color) ) do delete(color(BlockID, Color)). % Remove all colors, because the ones we can currently see are sent
-=======
 		% TODO Do this update more elegantly. It spams data now
->>>>>>> 121bfb18138c224d3f41941dc89eb193a7f2d70b
+
 		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Send always, local
 		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Long term block memory
 		

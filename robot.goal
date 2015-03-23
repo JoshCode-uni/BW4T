@@ -17,6 +17,8 @@ init module {
 		
 		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).
 		
+		visited(Place) :- visited(Place).
+		
 	}
 	program {
 		% Store map information, i.e., navigation points in the agent's belief base.
@@ -27,6 +29,7 @@ init module {
 		
 		% Adopt initial goals.
 		forall bel( room(Place) ) do adopt( in(Place) ).
+		if true then adopt(done).
 		
 		% TODO % if bel( percept(sequenceIndex(Index))) then adopt(sequenceIndex(Index)). % Needs to be initialized
 
@@ -68,7 +71,7 @@ init module {
 
 main module [exit=nogoals] {
 	program {
-		forall bel(\+nextColorInSeq(_), room(Place)) do insert(in(Place)).		
+		%forall bel(\+nextColorInSeq(_), room(Place)) do insert(in(Place)).
 		
 		% Exercise 2.5a: insert code for action rules that allows an agent to systematically search for blocks.
 		% Try to pickup a block when we are at the block with the needed color
@@ -85,10 +88,10 @@ main module [exit=nogoals] {
 
 		% Added move items below the rest
 		% If we have a right color in the room, don't move away
-		if bel( not(nextBlockInSeq(_)) ), a-goal( in(Place) ) then goTo(Place).
+		if bel( not(nextBlockInSeq(_)) ), a-goal( in(Place)) then goTo(Place).
 		
 		% ONLY FOR DEBUG PURPOSES
-		forall bel( room(Place) ) do adopt( in(Place) ).
+		% forall bel( room(Place) ) do adopt( in(Place) ).
 		
 		% !!! Voor Hidde !!!
 		% !!! Voor Hidde !!!
@@ -105,6 +108,10 @@ main module [exit=nogoals] {
 
 event module {
 	program {
+		% Check if done
+		if bel(not(nextColorInSeq(Color))) then drop(done).
+		forall bel(not(nextColorInSeq(Color)), room(Place)) do drop(in(Place)).		
+		
 	    % Update the agent's state of movement.
 		forall bel( state(State), percept(state(NewState)) ) do delete( state(State) ) + insert( state(NewState) ).
 		

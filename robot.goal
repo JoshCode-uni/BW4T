@@ -13,8 +13,9 @@ init module {
 		% Exercise 2.5 + 2.6: (optional) if needed, insert additional knowledge here.
 		
 		% Gives the next block needed in the sequence when in a room, if any
-		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color), blockInRoom(BlockID, _).
+		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color), blockInRoom(BlockID, RoomID), in(RoomID).
 		
+		% Consults the database for the next block in the sequence to get the needed room
 		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).
 		
 		visited(Place) :- visited(Place).
@@ -80,6 +81,7 @@ main module [exit=nogoals] {
 		% If we believe that we currently see a color with the needed color, go to the block, if we are not already there
 		if bel( nextBlockInSeq(BlockID)), bel( not(holding(_))) then goToBlock(BlockID).
 		
+		% Consult the block/room knowledge for the next block
 		if bel(deliverableBlock(BlockID, RoomID), not(in(RoomID)), not(holding(_))) then goTo(RoomID).
 		
 		% If we are holding anything, return to the DropZone
@@ -88,7 +90,8 @@ main module [exit=nogoals] {
 
 		% Added move items below the rest
 		% If we have a right color in the room, don't move away
-		if bel( not(nextBlockInSeq(_)) ), a-goal( in(Place)) then goTo(Place).
+		% If the needed block does not exist in our knowledge, pick a random room we have not yet visited
+		if bel(nextColorInSeq(_)), a-goal( in(Place)), bel( not(deliverableBlock(_, Place)) ) then goTo(Place).
 		
 		% ONLY FOR DEBUG PURPOSES
 		% forall bel( room(Place) ) do adopt( in(Place) ).
@@ -132,7 +135,7 @@ event module {
 		
 		% 2.5: We must remove and re-add all colors every cycle, since they are sent always when available
 		% and we want to know which are available when in a room, this is probably fixed in ex. 2.6 (?)
-		forall bel( color(BlockID, Color) ) do delete(color(BlockID, Color)). % Remove all colors, because the ones we can currently see are sent
+		% forall bel( color(BlockID, Color) ) do delete(color(BlockID, Color)). % Remove all colors, because the ones we can currently see are sent
 		% TODO Do this update more elegantly. It spams data now
 
 		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Send always, local

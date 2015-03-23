@@ -1,5 +1,9 @@
 init module {
 	knowledge {
+		% The following predicates are added at runtime:
+		% color(BlockID, Color).
+		% blockInRoom(BlockID, RoomID).
+		
 		% A room is a place with exactly one neighbour, i.e., there is only one way to get to and from that place.
 		room(PlaceID) :- zone(_,PlaceID,_,_,Neighbours), length(Neighbours,1).
 		
@@ -9,7 +13,9 @@ init module {
 		% Exercise 2.5 + 2.6: (optional) if needed, insert additional knowledge here.
 		
 		% Gives the next block needed in the sequence when in a room, if any
-		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color).
+		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color), blockInRoom(BlockID, _).
+		
+		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).
 		
 	}
 	program {
@@ -62,14 +68,16 @@ init module {
 
 main module [exit=nogoals] {
 	program {
-		forall bel(\+nextColorInSeq(_), room(Place)) do insert(in(Place)).
+		forall bel(\+nextColorInSeq(_), room(Place)) do insert(in(Place)).		
 		
 		% Exercise 2.5a: insert code for action rules that allows an agent to systematically search for blocks.
+		% Try to pickup a block when we are at the block with the needed color
+		if bel( nextBlockInSeq(BlockID), atBlock(BlockID), blockInRoom(BlockID, RoomID), in(RoomID)) then pickUp.
+
 		% If we believe that we currently see a color with the needed color, go to the block, if we are not already there
 		if bel( nextBlockInSeq(BlockID)), bel( not(holding(_))) then goToBlock(BlockID).
-
-		% Try to pickup a block when we are at the block with the needed color
-		if bel( nextBlockInSeq(BlockID), atBlock(BlockID)) then pickUp.
+		
+		if bel(deliverableBlock(BlockID, RoomID), not(in(RoomID)), not(holding(_))) then goTo(RoomID).
 		
 		% If we are holding anything, return to the DropZone
 		if bel( not(in('DropZone'))), bel( holding(_) ) then goTo('DropZone'). % Hardcoded dropzone
@@ -115,15 +123,16 @@ event module {
 		forall bel( inRoomBlock(BlockID) ) do delete( inRoomBlock(BlockID) ). % Send on change local
 		forall bel( percept(color(NewBlockID, _)) ) do insert(inRoomBlock(NewBlockID)). % Send on change local
 		
-		forall bel( color(BlockID, Color) ) do delete(color(BlockID, Color)). % Remove all colors, because the ones we can currently see are sent
+		% TODO Do this update more elegantly. It spams data now
 		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Send always, local
-		
-		forall bel( not(blockInRoom(BlockID, _)), percept(color(BlockID, Color)), in(Place) ) do insert(blockInRoom(BlockID, Place)). % Long term block memory
+		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Long term block memory
 		
 		forall bel( percept(holding(BlockID)) ) do insert( holding(BlockID) ). % Send on change with negation
 		forall bel( percept(not(holding(BlockID))) ) do delete( holding(BlockID) ).
 		
 		forall bel( sequenceIndex(Index), percept(sequenceIndex(NewIndex)) ) do delete( sequenceIndex(Index) ) + insert( sequenceIndex(NewIndex) ).
+		
+		forall bel( holding(BlockID), blockInRoom(BlockID, RoomID) ) do delete (blockInRoom(BlockID, RoomID)).
 		
 		% Exercise 2.5b: insert code for goal management that allows an agent to systematically search for blocks. (if needed)
 		

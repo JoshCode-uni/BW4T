@@ -68,7 +68,7 @@ init module {
 main module [exit=nogoals] {
 	program {
 		% Check if we are done
-		if bel(sequence(Colors),length(Colors,L),sequenceIndex(L)) then insert(deliveredBlocks).
+		if bel(sequence(Colors),length(Colors,L),sequenceIndex(L)) then drop(deliveredBlocks).
 		
 		% Exercise 2.5a: insert code for action rules that allows an agent to systematically search for blocks.
 		% Try to pickup a block when we are at the block with the needed color
@@ -131,9 +131,5 @@ event module {
 		% Exercise 2.6b: insert code for goal management that makes the agent deliver a block when it 
 		%   knows about a block that can be delivered. (if needed)
 		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Long term block memory
-
-		% Check if done
-		if bel(not(nextColorInSeq(Color))) then drop(done).
-		forall bel(not(nextColorInSeq(Color)), room(Place)) do drop(in(Place)).
 	}
 }

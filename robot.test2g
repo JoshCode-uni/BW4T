@@ -10,7 +10,29 @@ masTest {
 				
 				% Assignment 3.1: insert test conditions for the mandatory requirements.
 				
-				% Assignment 3.2: insert any additional conditions for furhter requirements. 
+				% An agent should not drop a block outside a room (i.e. in a corridor);
+				never do(putDown), bel(not(in(_))).
+				
+				% An agent should not pick up a block that is not needed next;
+				% Never pickup when the block to be picked up and the next needed block do not match
+				never do(pickUp), bel(atBlock(BlockIDAt)), bel( nextBlockInSeq(BlockIDNext)), bel(not(BlockIDAt = BlockIDNext)).
+				
+				% An agent that is not holding a block that is needed next should not enter the dropzone;
+				% Never go to the DropZone when the next wanted block and the block we are holding do not match
+				never do(goTo('DropZone')), bel( nextBlockInSeq(BlockIDNext), holding(BlockIDHold), not(BlockIDNext = BlockIDHold) ).
+				
+				% An agent should not leave the drop zone whilst holding a block.
+				% Never go to any place when holding a block except for when the Place equals DropZone
+				never do(goTo(Place)), bel( holding(_), not(Place = 'DropZone') ).
+				
+				% Assignment 3.2: insert any additional conditions for further requirements. 
+				
+				% An agent that is not holding a block and knows where to find a block of the next color should
+				% not go to a room where such a block is not present.
+				% Never go to a place where we have a record of the room, but blockInRoom does not contain the needed block
+				never do(goTo(Place)), bel( blockInRoom(_, Place), nextBlockInSeq(BlockIDNeed), not(blockInRoom(BlockIDNeed, Place)) ).
+				
+				
 				
 			} in do main until bel(sequence(Colors),length(Colors,L),sequenceIndex(L)). % delivered all blocks.
 		}

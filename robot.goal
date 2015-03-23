@@ -97,7 +97,6 @@ main module [exit=nogoals] {
 
 event module {
 	program {
-		
 	    % Update the agent's state of movement.
 		forall bel( state(State), percept(state(NewState)) ) do delete( state(State) ) + insert( state(NewState) ).
 		
@@ -132,7 +131,9 @@ event module {
 		% Exercise 2.6b: insert code for goal management that makes the agent deliver a block when it 
 		%   knows about a block that can be delivered. (if needed)
 		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Long term block memory
-		
-		
+
+		% Check if done
+		if bel(not(nextColorInSeq(Color))) then drop(done).
+		forall bel(not(nextColorInSeq(Color)), room(Place)) do drop(in(Place)).
 	}
 }

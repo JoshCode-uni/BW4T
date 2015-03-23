@@ -77,6 +77,11 @@ main module [exit=nogoals] {
 		% If we have a right color in the room, don't move away
 		if bel( not(nextBlockInSeq(_)) ), a-goal( in(Place) ) then goTo(Place).
 		
+		forall bel(\+nextColorInSeq(_), room(Place)) do insert(in(Place)).
+		
+		% ONLY FOR DEBUG PURPOSES
+		forall bel( room(Place) ) do adopt( in(Place) ).
+		
 		% !!! Voor Hidde !!!
 		% !!! Voor Hidde !!!
 		% !!! Voor Hidde !!!

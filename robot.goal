@@ -16,8 +16,7 @@ init module {
 		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color), blockInRoom(BlockID, RoomID), in(RoomID).
 		
 		% Consults the database for the next block in the sequence to get the needed room
-		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).
-				
+		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).				
 	}
 	program {
 		% Store map information, i.e., navigation points in the agent's belief base.
@@ -59,8 +58,8 @@ init module {
 
 		% Exercise 2.3c: insert a specification for the putDown action.
 		putDown {
-			pre { not(state(traveling)), holding(_) }
-			post { true }
+			pre { not(state(traveling)), holding(BlockID), in(RoomID) }
+			post { putDown(BlockID, RoomID) }
 		}
 	}
 }
@@ -72,18 +71,18 @@ main module [exit=nogoals] {
 		
 		% Exercise 2.5a: insert code for action rules that allows an agent to systematically search for blocks.
 		% Try to pickup a block when we are at the block with the needed color
-		if bel( nextBlockInSeq(BlockID), atBlock(BlockID), blockInRoom(BlockID, RoomID), in(RoomID)) then pickUp.
+		if goal(delivered(BlockID)), bel( atBlock(BlockID), blockInRoom(BlockID, RoomID), in(RoomID)) then pickUp.
 
 		% If we believe that we currently see a color with the needed color, go to the block, if we are not already there
-		if bel( nextBlockInSeq(BlockID)), bel( not(holding(_))) then goToBlock(BlockID).
+		if goal(delivered(BlockID)), bel( not(holding(_))) then goToBlock(BlockID).
 		
 		% Consult the block/room knowledge for the next block
 		% If a block is known that can be delivered, deliver it
 		if bel( deliverableBlock(BlockID, RoomID), not(in(RoomID)), not(holding(_)) ) then goTo(RoomID).
 		
 		% If we are holding anything, return to the DropZone
-		if bel( not(in('DropZone'))), bel( holding(_) ) then goTo('DropZone'). % Hardcoded dropzone
-		if bel( in('DropZone')) then putDown. % If we are in dropzone, always putDown block
+		if goal(delivered(BlockID)), bel( not(in('DropZone')), holding(BlockID) ) then goTo('DropZone'). % Hardcoded dropzone
+		if goal(delivered(BlockID)), bel( in('DropZone'), holding(BlockID) ) then putDown. % If we are in dropzone, always putDown block
 
 		% Exercise 2.6a: insert code for action rules that makes the agent deliver a block when it 
 		%   knows about a block that can be delivered.
@@ -98,43 +97,51 @@ main module [exit=nogoals] {
 
 event module {
 	program {
-	    % Update the agent's state of movement.
+	   	%%%%%%%%%%%%%%%%%%%%%%%%%%
+		% PERCEPT THE ENVIROMENT %
+		%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%% STATE UPDATE
 		forall bel( state(State), percept(state(NewState)) ) do delete( state(State) ) + insert( state(NewState) ).
 		
-		% Record when we are entering or leaving a room.
+		%% LOCATION UPDATE
+		%%% ROOM LOCATION
 		forall bel( percept(in(Place)) ) do insert( in(Place) ).
 		forall bel( percept(not(in(Place))) ) do delete( in(Place) ) + insert( visited(Place) ). % Updated with visited predicate into belief base
-
-		% Exercise 2.1b: insert rules for handling percepts other than "sendonce" percepts.
+		%%% PLACE LOCATION
 		forall bel( at(Place)) do delete (at(Place)).
 		forall bel( percept(at(Place)) ) do insert( at(Place) ). % Send on change
 		
+		%% BLOCK VISION
+		%%% BLOCKS IN ROOM
+		forall bel( inRoomBlock(BlockID) ) do delete( inRoomBlock(BlockID) ). % Send on change local
+		forall bel( percept(color(NewBlockID, _)) ) do insert( inRoomBlock(NewBlockID) ). % Send on change local
+		%%% BLOCKS AT FEET
 		forall bel( percept(atBlock(BlockID)) ) do insert( atBlock(BlockID) ). % Send on change with negation
 		forall bel( percept(not(atBlock(BlockID))) ) do delete( atBlock(BlockID) ).
 		
-		% Check which blocks you can see
-		forall bel( inRoomBlock(BlockID) ) do delete( inRoomBlock(BlockID) ). % Send on change local
-		forall bel( percept(color(NewBlockID, _)) ) do insert(inRoomBlock(NewBlockID)). % Send on change local
+		%% LONG TERM MEMORY
+		%%% COLOR MEMORY
+		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Insert all colors we can see to the belief base
+		%%% LOCATION MEMORY
+		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Insert all blocks we can see in this room to the belief base
 		
-		% 2.5: We must remove and re-add all colors every cycle, since they are sent always when available
-		% and we want to know which are available when in a room, this is probably fixed in ex. 2.6
-		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Send always, local
-		
+		%% INVENTORY
 		forall bel( percept(holding(BlockID)) ) do insert( holding(BlockID) ). % Send on change with negation
 		forall bel( percept(not(holding(BlockID))) ) do delete( holding(BlockID) ).
 		
+		%% SEQUENCE CHECKING
 		forall bel( sequenceIndex(Index), percept(sequenceIndex(NewIndex)) ) do delete( sequenceIndex(Index) ) + insert( sequenceIndex(NewIndex) ).
 		
-		forall bel( holding(BlockID), blockInRoom(BlockID, RoomID) ) do delete (blockInRoom(BlockID, RoomID)).
+		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		% PROCESS EFFECTS OF ACTIONS %
+		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%% DELETE BLOCK LOCATION IF HOLDING A BLOCK
+		forall bel( holding(BlockID), blockInRoom(BlockID, RoomID) ) do delete( blockInRoom(BlockID, RoomID) ).
 		
-		% Exercise 2.5b: insert code for goal management that allows an agent to systematically search for blocks. (if needed)
+		%% CHECK DELIVERABLE BLOCKS AND INSERT GOALS
+		if bel( deliverableBlock(BlockID, _)), not(goal(delivered(_))) then adopt( delivered(BlockID) ).
 		
-		% Exercise 2.6b: insert code for goal management that makes the agent deliver a block when it 
-		%   knows about a block that can be delivered. (if needed)
-		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Long term block memory
-
-		% Check if done
-		if bel(not(nextColorInSeq(Color))) then drop(done).
-		forall bel(not(nextColorInSeq(Color)), room(Place)) do drop(in(Place)).
+		%% GOAL ACHIEVED IF BLOCK PUT DOWN IN DROPZONE
+		forall bel( putDown(BlockID, 'DropZone') ) do insert(delivered(BlockID)) + delete(putDown(BlockID, 'DropZone')).
 	}
 }

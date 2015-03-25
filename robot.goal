@@ -68,7 +68,7 @@ init module {
 main module [exit=nogoals] {
 	program {
 		% Check if we are done
-		if bel(sequence(Colors),length(Colors,L),sequenceIndex(L)) then insert(deliveredBlocks).
+		if bel( sequence(Colors), length(Colors, L), sequenceIndex(L) ) then insert(deliveredBlocks).
 		
 		% Exercise 2.5a: insert code for action rules that allows an agent to systematically search for blocks.
 		% Try to pickup a block when we are at the block with the needed color
@@ -78,7 +78,8 @@ main module [exit=nogoals] {
 		if bel( nextBlockInSeq(BlockID)), bel( not(holding(_))) then goToBlock(BlockID).
 		
 		% Consult the block/room knowledge for the next block
-		if bel(deliverableBlock(BlockID, RoomID), not(in(RoomID)), not(holding(_))) then goTo(RoomID).
+		% If a block is known that can be delivered, deliver it
+		if bel( deliverableBlock(BlockID, RoomID), not(in(RoomID)), not(holding(_)) ) then goTo(RoomID).
 		
 		% If we are holding anything, return to the DropZone
 		if bel( not(in('DropZone'))), bel( holding(_) ) then goTo('DropZone'). % Hardcoded dropzone
@@ -90,7 +91,7 @@ main module [exit=nogoals] {
 		% Added move items below the rest
 		% If we have a right color in the room, don't move away
 		% If the needed block does not exist in our knowledge, pick a random room we have not yet visited
-		if bel(nextColorInSeq(_)), bel( room(Place)), bel( not(Place = 'DropZone'), not(deliverableBlock(_, Place)), not(visited(Place)) ) then goTo(Place).
+		if bel(nextColorInSeq(_), room(Place), not(Place = 'DropZone'), not(deliverableBlock(_, Place)), not(visited(Place)) ) then goTo(Place).
 		
 	}
 }

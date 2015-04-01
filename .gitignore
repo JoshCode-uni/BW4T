@@ -1,2 +1,6 @@
+/gource/**
+
 /bin/**
 /log/**
+
+!/gource/gource-captions.txt

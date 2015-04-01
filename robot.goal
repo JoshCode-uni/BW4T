@@ -13,10 +13,13 @@ init module {
 		% Exercise 2.5 + 2.6: (optional) if needed, insert additional knowledge here.
 		
 		% Gives the next block needed in the sequence when in a room, if any
-		nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color), blockInRoom(BlockID, RoomID), in(RoomID).
+		%nextBlockInSeq(BlockID) :- nextColorInSeq(Color), color(BlockID, Color), blockInRoom(BlockID, RoomID), in(RoomID).
 		
 		% Consults the database for the next block in the sequence to get the needed room
-		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).				
+		deliverableBlock(BlockID, RoomID) :- blockInRoom(BlockID, RoomID), nextColorInSeq(Color), color(BlockID, Color).
+		
+		% Get a random room that isn't the dropzone
+		randomRoom(RoomID) :- room(RoomID), not(RoomID = 'DropZone').
 	}
 	program {
 		% Store map information, i.e., navigation points in the agent's belief base.
@@ -69,6 +72,14 @@ main module [exit=nogoals] {
 		% Check if we are done
 		if bel( sequence(Colors), length(Colors, L), sequenceIndex(L) ) then insert(deliveredBlocks).
 		
+		% Check if goal is achievable, drop goal if not (As4 - 1.3.2)
+		if goal(delivered(BlockID)), bel(blockInRoom(BlockID, RoomID), in(RoomID), not(inRoomBlock(BlockID))) then drop(delivered(BlockID)) + delete(blockInRoom(BlockID, RoomID)).
+		
+		% Check if block is still needed, drop goal if not (As4 - 1.3.3)
+		if goal(secure(BlockID)), bel(not(in('DropZone')), in(RoomID)) then putDown + insert(secure(BlockID)).
+		if goal(secure(BlockID)), bel(randomRoom(RoomID)) then goTo(RoomID).
+		if goal(delivered(BlockID)), bel(holding(BlockID), nextColorInSeq(Color), not(color(BlockID, Color))) then drop(delivered(BlockID)) + adopt(secure(BlockID)).
+		
 		% Exercise 2.5a: insert code for action rules that allows an agent to systematically search for blocks.
 		% Try to pickup a block when we are at the block with the needed color
 		if goal(delivered(BlockID)), bel( atBlock(BlockID), blockInRoom(BlockID, RoomID), in(RoomID)) then pickUp.
@@ -97,16 +108,31 @@ main module [exit=nogoals] {
 
 event module {
 	program {
+		%% DETECT IF DONE
+		forall goal(delivered(BlockID)), not(goal(deliveredBlocks)) do drop(delivered(BlockID)).
+		
 	   	%%%%%%%%%%%%%%%%%%%%%%%%%%
 		% PERCEPT THE ENVIROMENT %
 		%%%%%%%%%%%%%%%%%%%%%%%%%%
 		%% STATE UPDATE
 		forall bel( state(State), percept(state(NewState)) ) do delete( state(State) ) + insert( state(NewState) ).
 		
+		%% GOAL UPDATE
+		forall bel( secure(BlockID)) do drop(secure(BlockID)) + delete(secure(BlockID)).
+		
+		%% MAILBOX MANGEMENT
+		%%% BLOCK COLORS
+		forall bel(received(MessageSender, color(BlockID, Color))) do insert( color(BlockID, Color) ) + delete(received(MessageSender, color(BlockID, Color))).
+		%% BLOCK LOCATIONS
+		forall bel(received(MessageSender, blockInRoom(BlockID, RoomID))) do insert( blockInRoom(BlockID, RoomID) ) + delete(received(MessageSender, blockInRoom(BlockID, RoomID))).
+		forall bel(received(MessageSender, not(blockInRoom(BlockID, RoomID)))) do delete( blockInRoom(BlockID, RoomID) ) + delete(received(MessageSender, not(blockInRoom(BlockID, RoomID)))) + drop(delivered(BlockID)).
+		%% ROOMS SCOUTED
+		forall bel(received(MessageSender, visited(RoomID))) do insert(visited(RoomID)) + delete(received(MessageSender, visited(RoomID))).
+		
 		%% LOCATION UPDATE
 		%%% ROOM LOCATION
 		forall bel( percept(in(Place)) ) do insert( in(Place) ).
-		forall bel( percept(not(in(Place))) ) do delete( in(Place) ) + insert( visited(Place) ). % Updated with visited predicate into belief base
+		forall bel( percept(not(in(Place))) ) do delete( in(Place) ) + insert( visited(Place) ) + allother.send(visited(Place)). % Updated with visited predicate into belief base
 		%%% PLACE LOCATION
 		forall bel( at(Place)) do delete (at(Place)).
 		forall bel( percept(at(Place)) ) do insert( at(Place) ). % Send on change
@@ -121,9 +147,9 @@ event module {
 		
 		%% LONG TERM MEMORY
 		%%% COLOR MEMORY
-		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)). % Insert all colors we can see to the belief base
+		forall bel( percept(color(BlockID, Color)) ) do insert(color(BlockID, Color)) + allother.send(color(BlockID, Color)). % Insert all colors we can see to the belief base
 		%%% LOCATION MEMORY
-		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)). % Insert all blocks we can see in this room to the belief base
+		forall bel( percept(color(BlockID, Color)), in(RoomID) ) do insert(blockInRoom(BlockID, RoomID)) + allother.send(blockInRoom(BlockID, RoomID)). % Insert all blocks we can see in this room to the belief base
 		
 		%% INVENTORY
 		forall bel( percept(holding(BlockID)) ) do insert( holding(BlockID) ). % Send on change with negation
@@ -136,7 +162,7 @@ event module {
 		% PROCESS EFFECTS OF ACTIONS %
 		%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		%% DELETE BLOCK LOCATION IF HOLDING A BLOCK
-		forall bel( holding(BlockID), blockInRoom(BlockID, RoomID) ) do delete( blockInRoom(BlockID, RoomID) ).
+		forall bel( holding(BlockID), blockInRoom(BlockID, RoomID) ) do delete( blockInRoom(BlockID, RoomID) ) + allother.send(not(blockInRoom(BlockID, RoomID))).
 		
 		%% CHECK DELIVERABLE BLOCKS AND INSERT GOALS
 		if bel( deliverableBlock(BlockID, _)), not(goal(delivered(_))) then adopt( delivered(BlockID) ).
